@@ -115,30 +115,68 @@ async function getMe(req,res){
 
 }
 
-async function logoutUser(req,res){
-   let authHeader = req.headers.authorization;
+// async function logoutUser(req,res){
+//    let authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(400).json({
-            message: 'Token not provided'
+//     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//         return res.status(400).json({
+//             message: 'Token not provided'
+//         });
+//     }
+
+//     let token = authHeader.split(' ')[1];
+//     // let token = req.cookies.token;
+//     if(!token){
+//         return res.status(400).json({
+//             message:'Token not provided'
+//         })
+//     }
+
+//     await redis.set(token, 'blacklisted');
+
+//     return res.status(200).json({
+//         message:'User logged out successfully'
+//     })
+
+// }
+
+
+async function logoutUser(req, res) {
+    try {
+        let authHeader = req.headers.authorization;
+
+        let token = req.cookies?.token;
+
+        // Fall back to the Authorization header
+        if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        }
+
+        if (!token) {
+            return res.status(400).json({
+                message: 'Token not provided'
+            });
+        }
+
+        await redis.set(token, 'blacklisted');
+
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'none'
+        });
+
+        return res.status(200).json({
+            message: 'User logged out successfully'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        return res.status(500).json({
+            message: 'Internal server error'
         });
     }
-
-    let token = authHeader.split(' ')[1];
-    // let token = req.cookies.token;
-    if(!token){
-        return res.status(400).json({
-            message:'Token not provided'
-        })
-    }
-
-    await redis.set(token, 'blacklisted');
-
-    return res.status(200).json({
-        message:'User logged out successfully'
-    })
-
 }
+
 
 
 
