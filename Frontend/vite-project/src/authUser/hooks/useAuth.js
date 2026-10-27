@@ -125,6 +125,7 @@ async function registerHook(username,email,password){
     let response=await userRegister(username,email,password)
     await login(response.token, response.userdata)
     setUser(response.userdata)
+    await checkAuth()
     setLoading(false)
     }
     catch(err){
