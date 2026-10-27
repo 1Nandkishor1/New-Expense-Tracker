@@ -12,7 +12,7 @@ const SettlementList = () => {
     settlements, loading, error,
     createSettlementHook,
     confirmSettlementHook,
-     balanceSettlements,
+    balanceSettlements,
     uploadScreenshotHook
   } = useSettlements(id)
 
@@ -54,7 +54,7 @@ const SettlementList = () => {
     }
   }
 
-    function handleSelectTransaction(e) {
+  function handleSelectTransaction(e) {
     const selected = balanceSettlements.find(t => t.to._id === e.target.value)
     if (selected) {
       setPaidTo(selected.to._id)
@@ -91,7 +91,7 @@ const SettlementList = () => {
         )}
       </div>
 
-           {showForm && (
+      {showForm && (
         <div className="settlement-form-card">
           <h2 className="settlement-form-card__title">Record a Payment</h2>
           {formError && <div className="error-message">{formError}</div>}
@@ -105,13 +105,61 @@ const SettlementList = () => {
                 required
               >
                 <option value="">Select who you owe</option>
-                {balanceSettlements?.map((t) => (
+                {/* {balanceSettlements?.map((t) => (
                   <option key={t.to._id} value={t.to._id}>
                     {t.to.name} — ₹{t.amount}
                   </option>
-                ))}
+                ))} */}
+                // ✅ fixed — only show transactions where logged in user owes money
+                {balanceSettlements
+                  ?.filter(t => t.from._id === user?._id || t.from._id === user?.id)
+                  .map((t) => (
+                    <option key={t.to._id} value={t.to._id}>
+                      {t.to.name} — ₹{t.amount}
+                    </option>
+                  ))
+                }
               </select>
             </div>
+
+            <div className="form-group">
+              <label className="form-label">Pay To</label>
+              <select
+                className="form-input"
+                onChange={handleSelectTransaction}
+                required
+              >
+                <option value="">Select who you owe</option>
+                {balanceSettlements
+                  ?.filter(t => t.from._id === user?._id || t.from._id === user?.id)
+                  .length === 0
+                  ? <option disabled>You dont owe anyone</option>
+                  : balanceSettlements
+                    ?.filter(t => t.from._id === user?._id || t.from._id === user?.id)
+                    .map((t) => (
+                      <option key={t.to._id} value={t.to._id}>
+                        {t.to.name} — ₹{t.amount}
+                      </option>
+                    ))
+                }
+              </select>
+            </div>
+
+            // find this line
+            {!showForm && (
+              <button className="btn btn--primary" onClick={() => setShowForm(true)}>
+                Record a Payment
+              </button>
+            )}
+
+// ✅ replace with — only show button if user actually owes someone
+            {!showForm && balanceSettlements?.some(
+              t => t.from._id === user?._id || t.from._id === user?.id
+            ) && (
+                <button className="btn btn--primary" onClick={() => setShowForm(true)}>
+                  Record a Payment
+                </button>
+              )}
 
             <div className="form-group">
               <label className="form-label">Amount</label>
@@ -138,7 +186,7 @@ const SettlementList = () => {
           </form>
         </div>
       )}
-    
+
 
       {settlements.length === 0 ? (
         <div className="empty-state">
@@ -156,10 +204,10 @@ const SettlementList = () => {
           {settlements.map(settlement => {
             const isPayer = settlement.paidBy?._id === user?.id || settlement.paidBy?._id === user?._id;
             const isReceiver = settlement.paidTo?._id === user?.id || settlement.paidTo?._id === user?._id;
-            
+
             return (
-              <div 
-                key={settlement._id} 
+              <div
+                key={settlement._id}
                 className={`settlement-card ${settlement.isSettled ? 'settlement-card--confirmed' : 'settlement-card--pending'}`}
               >
                 <div className="settlement-card__main">
