@@ -4,70 +4,138 @@ let groupMemberModel=require('../model/groupmember.model');
 let Imagekit = require("@imagekit/nodejs");
 const { toFile } = require("@imagekit/nodejs");
 
-async function createSettlement(req,res){
-    try{
-    let groupId=req.params.id;
-    let {paidTo,amount}=req.body;
+// // async function createSettlement(req,res){
+// //     try{
+// //     let groupId=req.params.id;
+// //     let {paidTo,amount}=req.body;
 
-    let ispaidToExist=await groupMemberModel.findOne({
-        group:groupId,
-        user:paidTo
-    })
+// //     let ispaidToExist=await groupMemberModel.findOne({
+// //         group:groupId,
+// //         user:paidTo
+// //     })
 
-    if(!ispaidToExist){
-        return res.status(400).json({
-            message:"The User You Want To Paid Do Not Exist"
-        })
+// //     if(!ispaidToExist){
+// //         return res.status(400).json({
+// //             message:"The User You Want To Paid Do Not Exist"
+// //         })
+// //     }
+
+// //     if(paidTo==req.user.id){
+// //         return res.status(400).json({
+// //             message:"You Can Not Do Settlement By Your Own"
+// //         })
+// //     }
+
+// //     let isSettled=await settlementModel.findOne({
+// //         group:groupId,
+// //         paidTo:paidTo,
+// //         amount:amount,
+// //         paidBy:req.user.id,
+// //         isSettled:'true'
+// //     })
+// // console.log('check1');
+// //     if(isSettled){
+// //         return res.status(400).json({
+// //             message:"Settlement is Already Done"
+// //         })
+// //     }
+
+// //     let settlement=await settlementModel.create({
+// //         group:groupId,
+// //         paidBy:req.user.id,
+// //         paidTo:paidTo,
+// //         amount:amount,
+// //         isSettled:'false'
+// //     })
+// // console.log('check2');
+// //     await settlement.populate('paidBy','name email avatar')
+// //     await settlement.populate('paidTo','name email avatar')
+
+// //     return res.status(201).json({
+// //         message:"Request For Settlement Is Suceessful",
+// //         settlement:settlement
+// //     })
+// // }
+// // catch(err){
+// //     return res.status(500).json({
+// //         message:"Something Went Wrong",
+// //         error:err.message
+// //     })
+// // }
+
+
+
+
+
+// }
+
+
+async function createSettlement(req, res) {
+    try {
+        let groupId = req.params.id;
+        let { paidTo, amount } = req.body;
+
+        // The logged-in user is the person who owes money
+        let paidBy = req.user.id;
+
+        // 1. Check whether the receiver belongs to the group
+        let isPaidToExist = await groupMemberModel.findOne({
+            group: groupId,
+            user: paidTo
+        });
+
+        if (!isPaidToExist) {
+            return res.status(400).json({
+                message: "The user you want to pay does not exist in this group"
+            });
+        }
+
+        // 2. Prevent self-settlement
+        if (paidTo == paidBy) {
+            return res.status(400).json({
+                message: "You cannot settle with yourself"
+            });
+        }
+
+        // 3. Check whether a pending settlement already exists
+        let existingSettlement = await settlementModel.findOne({
+            group: groupId,
+            paidBy: paidBy,
+            paidTo: paidTo,
+            isSettled: false
+        });
+
+        if (existingSettlement) {
+            return res.status(400).json({
+                message: "A settlement request already exists"
+            });
+        }
+
+        // 4. Create settlement using the authenticated user
+        let settlement = await settlementModel.create({
+            group: groupId,
+            paidBy: paidBy,
+            paidTo: paidTo,
+            amount: amount,
+            isSettled: false
+        });
+
+        await settlement.populate("paidBy", "name email avatar");
+        await settlement.populate("paidTo", "name email avatar");
+
+        return res.status(201).json({
+            message: "Settlement request created successfully",
+            settlement
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            message: "Something went wrong",
+            error: err.message
+        });
     }
-
-    if(paidTo==req.user.id){
-        return res.status(400).json({
-            message:"You Can Not Do Settlement By Your Own"
-        })
-    }
-
-    let isSettled=await settlementModel.findOne({
-        group:groupId,
-        paidTo:paidTo,
-        amount:amount,
-        paidBy:req.user.id,
-        isSettled:'true'
-    })
-console.log('check1');
-    if(isSettled){
-        return res.status(400).json({
-            message:"Settlement is Already Done"
-        })
-    }
-
-    let settlement=await settlementModel.create({
-        group:groupId,
-        paidBy:req.user.id,
-        paidTo:paidTo,
-        amount:amount,
-        isSettled:'false'
-    })
-console.log('check2');
-    await settlement.populate('paidBy','name email avatar')
-    await settlement.populate('paidTo','name email avatar')
-
-    return res.status(201).json({
-        message:"Request For Settlement Is Suceessful",
-        settlement:settlement
-    })
-}
-catch(err){
-    return res.status(500).json({
-        message:"Something Went Wrong",
-        error:err.message
-    })
 }
 
-
-
-
-
-}
 
 async function getGroupSettlements(req,res){
     try{
