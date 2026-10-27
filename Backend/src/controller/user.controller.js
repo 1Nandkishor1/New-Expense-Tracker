@@ -116,16 +116,16 @@ async function getMe(req,res){
 }
 
 async function logoutUser(req,res){
-//    let authHeader = req.headers.authorization;
+   let authHeader = req.headers.authorization;
 
-    // if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    //     return res.status(400).json({
-    //         message: 'Token not provided'
-    //     });
-    // }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(400).json({
+            message: 'Token not provided'
+        });
+    }
 
-    // let token = authHeader.split(' ')[1];
-    let token = req.cookies.token;
+    let token = authHeader.split(' ')[1];
+    // let token = req.cookies.token;
     if(!token){
         return res.status(400).json({
             message:'Token not provided'
